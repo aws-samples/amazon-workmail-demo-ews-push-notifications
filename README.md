@@ -81,12 +81,22 @@ To register a user's mailbox for push subscriptions run:
 aws lambda invoke --function-name <SUBSCRIBE_LAMBDA_ARN> --payload  '{"email": "EMAIL"}' outputfile.txt
 ```
 
-To stop subscriptions just delete the stored password from the SSM Parameter store
+A successful run results in the following output in the console:
+
+```
+{
+    "StatusCode": 200
+}
+```
+
+To see the demo in action, send an email to the user subscribed for push subscriptions above with the subject "demo" from another user's account. The sender will then receive a reply consisting of the sentiment analysis of the content in the body of the initial email. 
+
+To stop subscriptions just delete the stored password from the SSM Parameter store:
 ```
 aws ssm delete-parameter --name <USER>
 ```
 
 Once the parameter is deleted the lambda notification responder will respond with 'Unsubscribe' when the next notification will be received. 
 
-To find out more about WorkMail <TODO Insert link here>
+To find out more about Amazon WorkMail, please visit  [Amazon WorkMail](https://aws.amazon.com/workmail/).
 
