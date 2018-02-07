@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform:
+- AWS::Serverless-2016-10-31
+
+Resources:
+  PushNotificationLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+      Policies:
+        - PolicyName: SSMAccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ['ssm:GetParameters', 'ssm:GetParameter']
+                Resource: '*'
+
+        - PolicyName: ComprehendAccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ['comprehend:DetectDominantLanguage','comprehend:DetectSentiment']
+                Resource: '*'
+
+  PushNotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.amazonaws.workmail.demo.PushNotificationLambdaHandler
+      Runtime: java8
+      CodeUri: target/aws-workmail-push-demo.jar
+      Description: Handle notification
+      Timeout: 40
+      MemorySize: 256
+      Role: { "Fn::GetAtt" : ["PushNotificationLambdaExecutionRole", "Arn"] }
+      Environment:
+        Variables:
+          WORKMAIL_EWS_URL: { 'Fn::Sub': 'https://ews.mail.${AWS::Region}.awsapps.com/EWS/Exchange.asmx' }
+      Events:
+        PushApi:
+          Type: Api
+          Properties:
+            Path: /notification
+            Method: POST
+
+  SubscribeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: com.amazonaws.workmail.demo.SubscribeLambdaHandler
+      Runtime: java8
+      Timeout: 40
+      MemorySize: 256
+      Role: { "Fn::GetAtt" : ["PushNotificationLambdaExecutionRole", "Arn"] }
+      CodeUri: target/aws-workmail-push-demo.jar
+      Description: Subscribe to the EWS endpoint
+      Environment:
+        Variables:
+          WORKMAIL_EWS_URL: { 'Fn::Sub': 'https://ews.mail.${AWS::Region}.awsapps.com/EWS/Exchange.asmx' }
+          PUSH_NOTIFICATION_URL: { 'Fn::Sub': ['https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/notification', { 'ServerlessRestApi': { "Ref" : "ServerlessRestApi" } } ] }
+
+
+Outputs:
+  PushNotificationApi:
+    Description: URL for push notifications
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/notification'
+    Export:
+      Name: PushNotificationApi
+
+  SubscriptionArn:
+    Description: ARN
+    Value: { "Fn::GetAtt" : ["SubscribeFunction", "Arn"] }
+    Export:
+      Name: SubscriptionArn
