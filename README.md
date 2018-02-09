@@ -30,7 +30,7 @@ To run the demo application perform the following operations:
 
 ### Check out the code package
 ```
-git clone ssh://git.amazon.com/pkg/GiraffePushNotificationsDemo
+git clone https://github.com/aws-samples/amazon-workmail-demo-ews-push-notifications
 
 ```
 
